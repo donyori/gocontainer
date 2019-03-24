@@ -13,7 +13,7 @@ type baseHeap struct {
 }
 
 func (h *baseHeap) Get(i int) gocontainer.Comparable {
-	if h == nil || h.a == nil || i < 0 || i >= len(h.a) {
+	if h == nil || i < 0 || i >= len(h.a) {
 		return nil
 	}
 	return h.a[i]

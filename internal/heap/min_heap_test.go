@@ -61,4 +61,14 @@ func TestMinHeap(t *testing.T) {
 		}
 		last = x
 	}
+	stdheap.Push(h, testElement(4))
+	h.Reset(0, 5)
+	if h.Len() != 0 || h.Cap() != 5 {
+		t.Fatal("Reset failed.")
+	}
+	stdheap.Push(h, testElement(4))
+	h.Clear()
+	if h.Len() != 0 || h.Cap() != 0 || h.a != nil {
+		t.Fatal("Clear failed.")
+	}
 }
