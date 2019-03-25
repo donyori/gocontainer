@@ -3,6 +3,7 @@ package pqueue
 import (
 	"container/heap"
 	"fmt"
+	"sync"
 
 	"github.com/donyori/gocontainer"
 	iheap "github.com/donyori/gocontainer/internal/heap"
@@ -13,28 +14,24 @@ type PriorityQueueEx struct {
 	basePriorityQueue
 }
 
-func NewPriorityQueueEx(capacity int) (pq *PriorityQueueEx, err error) {
+func NewPriorityQueueEx(capacity int, isSync bool) (
+	pq *PriorityQueueEx, err error) {
+	if capacity < 0 {
+		return nil, ErrNegativeCapacity
+	}
 	pq = new(PriorityQueueEx)
-	err = pq.Init(capacity)
+	if isSync {
+		pq.lock = new(sync.RWMutex)
+	}
+	err = gorecover.Recover(func() {
+		// Not necessary to lock during init.
+		pq.h = iheap.NewMaxHeap(0, capacity, true)
+		heap.Init(pq.h)
+	})
 	if err != nil {
 		return nil, err
 	}
 	return pq, nil
-}
-
-func (pq *PriorityQueueEx) Init(capacity int) error {
-	if pq == nil {
-		return ErrNilPriorityQueue
-	}
-	if capacity < 0 {
-		return ErrNegativeCapacity
-	}
-	return gorecover.Recover(func() {
-		pq.lock.Lock()
-		defer pq.lock.Unlock()
-		pq.h = iheap.NewMaxHeap(0, capacity, true)
-		heap.Init(pq.h)
-	})
 }
 
 func (pq *PriorityQueueEx) Top() (
@@ -42,8 +39,10 @@ func (pq *PriorityQueueEx) Top() (
 	if pq == nil {
 		return nil, ErrNilPriorityQueue
 	}
-	pq.lock.RLock()
-	defer pq.lock.RUnlock()
+	if pq.lock != nil {
+		pq.lock.RLock()
+		defer pq.lock.RUnlock()
+	}
 	x := pq.h.GetMax()
 	ici, ok := x.(*gocontainer.IndexedComparableItem)
 	if !ok {
@@ -52,12 +51,15 @@ func (pq *PriorityQueueEx) Top() (
 	return ici, nil
 }
 
-func (pq *PriorityQueueEx) Enqueue(ici *gocontainer.IndexedComparableItem) error {
+func (pq *PriorityQueueEx) Enqueue(
+	ici *gocontainer.IndexedComparableItem) error {
 	if pq == nil {
 		return ErrNilPriorityQueue
 	}
-	pq.lock.Lock()
-	defer pq.lock.Unlock()
+	if pq.lock != nil {
+		pq.lock.Lock()
+		defer pq.lock.Unlock()
+	}
 	nBefore := pq.h.Len() // Do NOT call pq.Len(), which will dead lock!
 	pErr := gorecover.Recover(func() {
 		heap.Push(pq.h, ici)
@@ -101,9 +103,11 @@ func (pq *PriorityQueueEx) Dequeue() (
 	if pq == nil {
 		return nil, ErrNilPriorityQueue
 	}
-	pErr := gorecover.Recover(func() {
+	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
+	}
+	pErr := gorecover.Recover(func() {
 		if pq.h.Len() <= 0 { // Do NOT call pq.Len(), which will dead lock!
 			ici = nil
 			err = ErrEmptyPriorityQueue
@@ -128,9 +132,11 @@ func (pq *PriorityQueueEx) Update(ici *gocontainer.IndexedComparableItem,
 	if pq == nil {
 		return ErrNilPriorityQueue
 	}
-	pErr := gorecover.Recover(func() {
+	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
+	}
+	pErr := gorecover.Recover(func() {
 		idx := ici.Index()
 		if pq.h.Get(idx) != ici {
 			err = ErrItemNotInQueue
@@ -153,9 +159,11 @@ func (pq *PriorityQueueEx) Remove(ici *gocontainer.IndexedComparableItem) (
 	if pq == nil {
 		return ErrNilPriorityQueue
 	}
-	pErr := gorecover.Recover(func() {
+	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
+	}
+	pErr := gorecover.Recover(func() {
 		idx := ici.Index()
 		if pq.h.Get(idx) != ici {
 			err = ErrItemNotInQueue

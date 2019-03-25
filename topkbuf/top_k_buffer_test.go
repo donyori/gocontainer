@@ -10,7 +10,7 @@ type testElement1 int
 type testElement2 float32
 
 func TestTopKBuffer(t *testing.T) {
-	tkb, err := NewTopKBuffer(-2)
+	tkb, err := NewTopKBuffer(-2, false)
 	if err != nil {
 		if err == ErrNonPositiveK {
 			t.Log(err)
@@ -21,7 +21,7 @@ func TestTopKBuffer(t *testing.T) {
 		t.Fatal("No error but should have one.")
 	}
 	k := 5
-	tkb, err = NewTopKBuffer(k)
+	tkb, err = NewTopKBuffer(k, true)
 	if err != nil {
 		t.Fatal(err)
 	}

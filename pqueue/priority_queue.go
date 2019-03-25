@@ -3,6 +3,7 @@ package pqueue
 import (
 	"container/heap"
 	"fmt"
+	"sync"
 
 	"github.com/donyori/gocontainer"
 	iheap "github.com/donyori/gocontainer/internal/heap"
@@ -13,36 +14,34 @@ type PriorityQueue struct {
 	basePriorityQueue
 }
 
-func NewPriorityQueue(capacity int) (pq *PriorityQueue, err error) {
+func NewPriorityQueue(capacity int, isSync bool) (
+	pq *PriorityQueue, err error) {
+	if capacity < 0 {
+		return nil, ErrNegativeCapacity
+	}
 	pq = new(PriorityQueue)
-	err = pq.Init(capacity)
+	if isSync {
+		pq.lock = new(sync.RWMutex)
+	}
+	err = gorecover.Recover(func() {
+		// Not necessary to lock during init.
+		pq.h = iheap.NewMaxHeap(0, capacity, false)
+		heap.Init(pq.h)
+	})
 	if err != nil {
 		return nil, err
 	}
 	return pq, nil
 }
 
-func (pq *PriorityQueue) Init(capacity int) error {
-	if pq == nil {
-		return ErrNilPriorityQueue
-	}
-	if capacity < 0 {
-		return ErrNegativeCapacity
-	}
-	return gorecover.Recover(func() {
-		pq.lock.Lock()
-		defer pq.lock.Unlock()
-		pq.h = iheap.NewMaxHeap(0, capacity, false)
-		heap.Init(pq.h)
-	})
-}
-
 func (pq *PriorityQueue) Top() (x gocontainer.Comparable, err error) {
 	if pq == nil {
 		return nil, ErrNilPriorityQueue
 	}
-	pq.lock.RLock()
-	defer pq.lock.RUnlock()
+	if pq.lock != nil {
+		pq.lock.RLock()
+		defer pq.lock.RUnlock()
+	}
 	return pq.h.GetMax(), nil
 }
 
@@ -50,8 +49,10 @@ func (pq *PriorityQueue) Enqueue(x gocontainer.Comparable) error {
 	if pq == nil {
 		return ErrNilPriorityQueue
 	}
-	pq.lock.Lock()
-	defer pq.lock.Unlock()
+	if pq.lock != nil {
+		pq.lock.Lock()
+		defer pq.lock.Unlock()
+	}
 	nBefore := pq.h.Len() // Do NOT call pq.Len(), which will dead lock!
 	pErr := gorecover.Recover(func() {
 		heap.Push(pq.h, x)
@@ -92,9 +93,11 @@ func (pq *PriorityQueue) Dequeue() (x gocontainer.Comparable, err error) {
 	if pq == nil {
 		return nil, ErrNilPriorityQueue
 	}
-	pErr := gorecover.Recover(func() {
+	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
+	}
+	pErr := gorecover.Recover(func() {
 		if pq.h.Len() <= 0 { // Do NOT call pq.Len(), which will dead lock!
 			x = nil
 			err = ErrEmptyPriorityQueue
