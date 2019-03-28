@@ -12,45 +12,11 @@ type baseHeap struct {
 	isIndexed bool
 }
 
-func (h *baseHeap) Get(i int) gocontainer.Comparable {
-	if h == nil || i < 0 || i >= len(h.a) {
-		return nil
-	}
-	return h.a[i]
-}
-
-func (h *baseHeap) Set(i int, x gocontainer.Comparable) {
-	if h == nil || h.a == nil {
-		panic(ErrNilHeap)
-	}
-	if i < 0 || i >= len(h.a) {
-		panic(errors.New("index out of range"))
-	}
-	if h.isIndexed {
-		ix, ok := x.(gocontainer.Indexed)
-		if !ok {
-			panic(ErrNotIndexed)
-		}
-		err := ix.UpdateIndex(i)
-		if err != nil {
-			panic(err)
-		}
-	}
-	h.a[i] = x
-}
-
 func (h *baseHeap) Len() int {
 	if h == nil {
 		return 0
 	}
 	return len(h.a)
-}
-
-func (h *baseHeap) Cap() int {
-	if h == nil {
-		return 0
-	}
-	return cap(h.a)
 }
 
 func (h *baseHeap) Swap(i, j int) {
@@ -104,7 +70,7 @@ func (h *baseHeap) Pop() interface{} {
 	old := h.a
 	last := len(old) - 1
 	x := old[last]
-	old[last] = nil
+	old[last] = nil // To avoid potential memory leak.
 	if h.isIndexed {
 		ix, ok := x.(gocontainer.Indexed)
 		if !ok {
@@ -119,11 +85,45 @@ func (h *baseHeap) Pop() interface{} {
 	return x
 }
 
-func (h *baseHeap) Reset(length, capacity int) {
+func (h *baseHeap) Cap() int {
 	if h == nil {
+		return 0
+	}
+	return cap(h.a)
+}
+
+func (h *baseHeap) Get(i int) gocontainer.Comparable {
+	if h == nil || i < 0 || i >= len(h.a) {
+		return nil
+	}
+	return h.a[i]
+}
+
+// For convenience to implement Set() in Heap interface,
+//   and set an item directly without fix the heap in test.
+// Set() should fix the heap by container/heap.Fix() after calling this method.
+func (h *baseHeap) set(i int, x gocontainer.Comparable) {
+	if h == nil || h.a == nil {
 		panic(ErrNilHeap)
 	}
-	h.a = make([]gocontainer.Comparable, length, capacity)
+	if i < 0 || i >= len(h.a) {
+		panic(errors.New("index out of range"))
+	}
+	if h.isIndexed {
+		ix, ok := x.(gocontainer.Indexed)
+		if !ok {
+			panic(ErrNotIndexed)
+		}
+		err := ix.UpdateIndex(i)
+		if err != nil {
+			panic(err)
+		}
+	}
+	h.a[i] = x
+}
+
+func (h *baseHeap) Top() gocontainer.Comparable {
+	return h.Get(0)
 }
 
 func (h *baseHeap) Clear() {
@@ -131,4 +131,11 @@ func (h *baseHeap) Clear() {
 		panic(ErrNilHeap)
 	}
 	h.a = nil
+}
+
+func (h *baseHeap) Reset(capacity int) {
+	if h == nil {
+		panic(ErrNilHeap)
+	}
+	h.a = make([]gocontainer.Comparable, 0, capacity)
 }

@@ -10,7 +10,7 @@ import (
 
 // Base type of PriorityQueue and PriorityQueueEx.
 type basePriorityQueue struct {
-	h    *iheap.MaxHeap
+	h    iheap.Heap
 	lock *sync.RWMutex
 }
 
@@ -48,7 +48,7 @@ func (pq *basePriorityQueue) Reset(capacity int) error {
 		defer pq.lock.Unlock()
 	}
 	return gorecover.Recover(func() {
-		pq.h.Reset(0, capacity)
+		pq.h.Reset(capacity)
 		heap.Init(pq.h)
 	})
 }

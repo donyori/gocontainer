@@ -31,7 +31,7 @@ func NewTopKBuffer(k int, isSync bool) (tkb *TopKBuffer, err error) {
 	}
 	err = gorecover.Recover(func() {
 		// Not necessary to lock during init.
-		tkb.h = iheap.NewMinHeap(0, k, false)
+		tkb.h = iheap.NewMinHeap(k, false)
 		tkb.k = k
 		heap.Init(tkb.h)
 	})
@@ -106,12 +106,12 @@ func (tkb *TopKBuffer) Add(x gocontainer.Comparable) (err error) {
 	pErr := gorecover.Recover(func() {
 		if tkb.h.Len() >= tkb.k {
 			var isLess bool
-			isLess, err = (*tkb.h).GetMin().Less(x)
+			isLess, err = (*tkb.h).Top().Less(x)
 			if err != nil {
 				return
 			}
 			if isLess {
-				tkb.h.UpdateMin(x)
+				tkb.h.UpdateTop(x)
 			}
 		} else {
 			heap.Push(tkb.h, x)
@@ -164,7 +164,7 @@ func (tkb *TopKBuffer) Clear() error {
 		defer tkb.lock.Unlock()
 	}
 	return gorecover.Recover(func() {
-		tkb.h.Reset(0, tkb.k)
+		tkb.h.Reset(tkb.k)
 		heap.Init(tkb.h)
 	})
 }

@@ -11,7 +11,7 @@ func TestMinHeap(t *testing.T) {
 	inputMin := inputs[0]
 	var input2ndMin testElement = math.MaxInt32
 	n := len(inputs)
-	h := NewMinHeap(n, n, false)
+	h := NewMinHeap(n, false)
 	for i := 0; i < n; i++ {
 		if inputMin > inputs[i] {
 			input2ndMin = inputMin
@@ -19,7 +19,7 @@ func TestMinHeap(t *testing.T) {
 		} else if input2ndMin > inputs[i] {
 			input2ndMin = inputs[i]
 		}
-		h.Set(i, inputs[i])
+		stdheap.Push(h, inputs[i])
 	}
 	stdheap.Init(h)
 	t.Logf("After init - heap underlying: %v", h.baseHeap)
@@ -35,7 +35,7 @@ func TestMinHeap(t *testing.T) {
 		input2ndMin = 4
 	}
 	t.Logf("After push - heap underlying: %v", h.baseHeap)
-	h.UpdateMin(testElement(2))
+	h.UpdateTop(testElement(2))
 	if inputMin > 2 {
 		inputMin = 2
 	} else {
@@ -43,7 +43,7 @@ func TestMinHeap(t *testing.T) {
 	}
 	input2ndMin = math.MaxInt32
 	t.Logf("After update max - heap underlying: %v", h.baseHeap)
-	if min := h.GetMin(); min != inputMin {
+	if min := h.Top(); min != inputMin {
 		t.Errorf("Max item (%d) != %d", min, inputMin)
 	}
 	t.Log("Start to pop:")
@@ -62,7 +62,7 @@ func TestMinHeap(t *testing.T) {
 		last = x
 	}
 	stdheap.Push(h, testElement(4))
-	h.Reset(0, 5)
+	h.Reset(5)
 	if h.Len() != 0 || h.Cap() != 5 {
 		t.Fatal("Reset failed.")
 	}

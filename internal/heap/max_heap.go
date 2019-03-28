@@ -1,7 +1,7 @@
 package heap
 
 import (
-	"container/heap"
+	stdheap "container/heap"
 
 	"github.com/donyori/gocontainer"
 )
@@ -11,28 +11,19 @@ type MaxHeap struct {
 	baseHeap
 }
 
-func NewMaxHeap(length, capacity int, isIndexed bool) *MaxHeap {
-	return &MaxHeap{
+func NewMaxHeap(capacity int, isIndexed bool) *MaxHeap {
+	var a []gocontainer.Comparable
+	if capacity != 0 {
+		a = make([]gocontainer.Comparable, 0, capacity)
+	}
+	h := &MaxHeap{
 		baseHeap: baseHeap{
-			a:         make([]gocontainer.Comparable, length, capacity),
+			a:         a,
 			isIndexed: isIndexed,
 		},
 	}
-}
-
-func (h *MaxHeap) GetMax() gocontainer.Comparable {
-	if h == nil {
-		return nil
-	}
-	return h.Get(0)
-}
-
-func (h *MaxHeap) UpdateMax(x gocontainer.Comparable) {
-	if h == nil {
-		panic(ErrNilHeap)
-	}
-	h.Set(0, x)
-	heap.Fix(h, 0)
+	stdheap.Init(h)
+	return h
 }
 
 func (h *MaxHeap) Less(i, j int) bool {
@@ -44,4 +35,13 @@ func (h *MaxHeap) Less(i, j int) bool {
 		panic(err)
 	}
 	return !isLess
+}
+
+func (h *MaxHeap) Set(i int, x gocontainer.Comparable) {
+	h.set(i, x)
+	stdheap.Fix(h, 0)
+}
+
+func (h *MaxHeap) UpdateTop(x gocontainer.Comparable) {
+	h.Set(0, x)
 }

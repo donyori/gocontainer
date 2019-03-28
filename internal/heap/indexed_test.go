@@ -11,7 +11,7 @@ import (
 func TestIndexed(t *testing.T) {
 	inputs := []testElement{3, 0, 9, -4, 3, -5, 8}
 	n := len(inputs)
-	h := NewMinHeap(n, n, true)
+	h := NewMinHeap(n, true)
 	err := gorecover.Recover(func() {
 		h.Set(0, inputs[0])
 	})
@@ -21,7 +21,7 @@ func TestIndexed(t *testing.T) {
 		t.Fatal("No error but should have one.")
 	}
 	for i := 0; i < n; i++ {
-		h.Set(i, gocontainer.NewIndexedComparableItem(inputs[i]))
+		stdheap.Push(h, gocontainer.NewIndexedComparableItem(inputs[i]))
 	}
 	checkIndex(t, h)
 	stdheap.Init(h)

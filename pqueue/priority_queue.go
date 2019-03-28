@@ -14,7 +14,7 @@ type PriorityQueue struct {
 	basePriorityQueue
 }
 
-func NewPriorityQueue(capacity int, isSync bool) (
+func NewPriorityQueue(capacity int, isTopMax, isSync bool) (
 	pq *PriorityQueue, err error) {
 	if capacity < 0 {
 		return nil, ErrNegativeCapacity
@@ -25,8 +25,11 @@ func NewPriorityQueue(capacity int, isSync bool) (
 	}
 	err = gorecover.Recover(func() {
 		// Not necessary to lock during init.
-		pq.h = iheap.NewMaxHeap(0, capacity, false)
-		heap.Init(pq.h)
+		if isTopMax {
+			pq.h = iheap.NewMaxHeap(capacity, false)
+		} else {
+			pq.h = iheap.NewMinHeap(capacity, false)
+		}
 	})
 	if err != nil {
 		return nil, err
@@ -42,7 +45,7 @@ func (pq *PriorityQueue) Top() (x gocontainer.Comparable, err error) {
 		pq.lock.RLock()
 		defer pq.lock.RUnlock()
 	}
-	return pq.h.GetMax(), nil
+	return pq.h.Top(), nil
 }
 
 func (pq *PriorityQueue) Enqueue(x gocontainer.Comparable) error {

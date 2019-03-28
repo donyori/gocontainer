@@ -11,7 +11,7 @@ func TestMaxHeap(t *testing.T) {
 	inputMax := inputs[0]
 	var input2ndMax testElement = math.MinInt32
 	n := len(inputs)
-	h := NewMaxHeap(n, n, false)
+	h := NewMaxHeap(n, false)
 	for i := 0; i < n; i++ {
 		if inputMax < inputs[i] {
 			input2ndMax = inputMax
@@ -19,7 +19,7 @@ func TestMaxHeap(t *testing.T) {
 		} else if input2ndMax < inputs[i] {
 			input2ndMax = inputs[i]
 		}
-		h.Set(i, inputs[i])
+		stdheap.Push(h, inputs[i])
 	}
 	stdheap.Init(h)
 	t.Logf("After init - heap underlying: %v", h.baseHeap)
@@ -35,7 +35,7 @@ func TestMaxHeap(t *testing.T) {
 		input2ndMax = 4
 	}
 	t.Logf("After push - heap underlying: %v", h.baseHeap)
-	h.UpdateMax(testElement(-2))
+	h.UpdateTop(testElement(-2))
 	if inputMax < -2 {
 		inputMax = -2
 	} else {
@@ -43,7 +43,7 @@ func TestMaxHeap(t *testing.T) {
 	}
 	input2ndMax = math.MinInt32
 	t.Logf("After update max - heap underlying: %v", h.baseHeap)
-	if max := h.GetMax(); max != inputMax {
+	if max := h.Top(); max != inputMax {
 		t.Errorf("Max item (%d) != %d", max, inputMax)
 	}
 	t.Log("Start to pop:")
@@ -62,7 +62,7 @@ func TestMaxHeap(t *testing.T) {
 		last = x
 	}
 	stdheap.Push(h, testElement(4))
-	h.Reset(0, 5)
+	h.Reset(5)
 	if h.Len() != 0 || h.Cap() != 5 {
 		t.Fatal("Reset failed.")
 	}

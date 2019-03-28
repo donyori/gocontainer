@@ -7,7 +7,7 @@ import (
 )
 
 func TestPriorityQueue(t *testing.T) {
-	pq, err := NewPriorityQueue(-2, false)
+	pq, err := NewPriorityQueue(-2, false, false)
 	if err != nil {
 		if err == ErrNegativeCapacity {
 			t.Log(err)
@@ -18,7 +18,7 @@ func TestPriorityQueue(t *testing.T) {
 		t.Fatal("No error but should have one.")
 	}
 	c := 5
-	pq, err = NewPriorityQueue(c, true)
+	pq, err = NewPriorityQueue(c, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}

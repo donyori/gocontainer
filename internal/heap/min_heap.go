@@ -1,7 +1,7 @@
 package heap
 
 import (
-	"container/heap"
+	stdheap "container/heap"
 
 	"github.com/donyori/gocontainer"
 )
@@ -11,37 +11,37 @@ type MinHeap struct {
 	baseHeap
 }
 
-func NewMinHeap(length, capacity int, isIndexed bool) *MinHeap {
-	return &MinHeap{
+func NewMinHeap(capacity int, isIndexed bool) *MinHeap {
+	var a []gocontainer.Comparable
+	if capacity != 0 {
+		a = make([]gocontainer.Comparable, 0, capacity)
+	}
+	h := &MinHeap{
 		baseHeap: baseHeap{
-			a:         make([]gocontainer.Comparable, length, capacity),
+			a:         a,
 			isIndexed: isIndexed,
 		},
 	}
-}
-
-func (h *MinHeap) GetMin() gocontainer.Comparable {
-	if h == nil {
-		return nil
-	}
-	return h.Get(0)
-}
-
-func (h *MinHeap) UpdateMin(x gocontainer.Comparable) {
-	if h == nil {
-		panic(ErrNilHeap)
-	}
-	h.Set(0, x)
-	heap.Fix(h, 0)
+	stdheap.Init(h)
+	return h
 }
 
 func (h *MinHeap) Less(i, j int) bool {
 	if h == nil {
 		panic(ErrNilHeap)
 	}
-	res, err := h.Get(i).Less(h.Get(j))
+	isLess, err := h.Get(i).Less(h.Get(j))
 	if err != nil {
 		panic(err)
 	}
-	return res
+	return isLess
+}
+
+func (h *MinHeap) Set(i int, x gocontainer.Comparable) {
+	h.set(i, x)
+	stdheap.Fix(h, 0)
+}
+
+func (h *MinHeap) UpdateTop(x gocontainer.Comparable) {
+	h.Set(0, x)
 }
