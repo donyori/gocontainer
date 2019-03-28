@@ -78,6 +78,10 @@ func (h *baseHeap) Push(x interface{}) {
 	if h == nil {
 		panic(ErrNilHeap)
 	}
+	cx, ok := x.(gocontainer.Comparable)
+	if !ok {
+		panic(gocontainer.ErrWrongType)
+	}
 	if h.isIndexed {
 		ix, ok := x.(gocontainer.Indexed)
 		if !ok {
@@ -88,7 +92,7 @@ func (h *baseHeap) Push(x interface{}) {
 			panic(err)
 		}
 	}
-	h.a = append(h.a, x.(gocontainer.Comparable))
+	h.a = append(h.a, cx)
 }
 
 // This method should be called by "container/heap" package.
@@ -98,8 +102,9 @@ func (h *baseHeap) Pop() interface{} {
 		panic(ErrNilHeap)
 	}
 	old := h.a
-	n := len(old)
-	x := old[n-1]
+	last := len(old) - 1
+	x := old[last]
+	old[last] = nil
 	if h.isIndexed {
 		ix, ok := x.(gocontainer.Indexed)
 		if !ok {
@@ -110,7 +115,7 @@ func (h *baseHeap) Pop() interface{} {
 			panic(err)
 		}
 	}
-	h.a = old[:n-1]
+	h.a = old[:last]
 	return x
 }
 
