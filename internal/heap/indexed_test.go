@@ -45,11 +45,10 @@ func TestIndexed(t *testing.T) {
 		}
 	}
 	stdheap.Push(h, gocontainer.NewIndexedComparableItem(testElement(4)))
-	n++
 	checkIndex(t, h)
 	for h.Len() > 0 {
 		x := stdheap.Pop(h).(*gocontainer.IndexedComparableItem)
-		t.Logf("Pop %+v", *x)
+		t.Logf("Pop %+v(index: %d)", x.Get(), x.Index())
 		checkIndex(t, h)
 	}
 }

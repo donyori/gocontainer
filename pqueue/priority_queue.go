@@ -14,44 +14,35 @@ type PriorityQueue struct {
 	basePriorityQueue
 }
 
-func NewPriorityQueue(capacity int, isTopMax, isSync bool) (
-	pq *PriorityQueue, err error) {
+func NewPriorityQueue(capacity int, isTopMax, isSync bool) *PriorityQueue {
 	if capacity < 0 {
-		return nil, ErrNegativeCapacity
+		panic(fmt.Errorf("gocontainer: capacity(%d) is negative", capacity))
 	}
-	pq = new(PriorityQueue)
+	pq := new(PriorityQueue)
 	if isSync {
 		pq.lock = new(sync.RWMutex)
 	}
-	err = gorecover.Recover(func() {
-		// Not necessary to lock during init.
-		if isTopMax {
-			pq.h = iheap.NewMaxHeap(capacity, false)
-		} else {
-			pq.h = iheap.NewMinHeap(capacity, false)
-		}
-	})
-	if err != nil {
-		return nil, err
+	// Not necessary to lock during init.
+	if isTopMax {
+		pq.h = iheap.NewMaxHeap(capacity, false)
+	} else {
+		pq.h = iheap.NewMinHeap(capacity, false)
 	}
-	return pq, nil
+	return pq
 }
 
-func (pq *PriorityQueue) Top() (x gocontainer.Comparable, err error) {
+func (pq *PriorityQueue) Top() gocontainer.Comparable {
 	if pq == nil {
-		return nil, ErrNilPriorityQueue
+		return nil
 	}
 	if pq.lock != nil {
 		pq.lock.RLock()
 		defer pq.lock.RUnlock()
 	}
-	return pq.h.Top(), nil
+	return pq.h.Top()
 }
 
-func (pq *PriorityQueue) Enqueue(x gocontainer.Comparable) error {
-	if pq == nil {
-		return ErrNilPriorityQueue
-	}
+func (pq *PriorityQueue) Enqueue(x gocontainer.Comparable) {
 	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
@@ -61,13 +52,15 @@ func (pq *PriorityQueue) Enqueue(x gocontainer.Comparable) error {
 		heap.Push(pq.h, x)
 	})
 	if pErr == nil {
-		return nil
+		return
 	}
+	// Try to recover the queue and then panic.
+	defer panic(pErr)
 	nAfter := pq.h.Len() // Do NOT call pq.Len(), which will dead lock!
 	if nAfter == nBefore {
 		// Push didn't modified the queue.
-		// Just return the error.
-		return pErr
+		// Just return.
+		return
 	}
 	// Try to recover the queue:
 	var idx int
@@ -88,34 +81,21 @@ func (pq *PriorityQueue) Enqueue(x gocontainer.Comparable) error {
 		panic(fmt.Errorf("%v; error occurs when recover the queue: %v",
 			pErr, pErr2))
 	}
-	// Succeed to recover the queue, return the error occurred during enqueue.
-	return pErr
+	// Succeed to recover the queue.
 }
 
-func (pq *PriorityQueue) Dequeue() (x gocontainer.Comparable, err error) {
+func (pq *PriorityQueue) Dequeue() (x gocontainer.Comparable, ok bool) {
 	if pq == nil {
-		return nil, ErrNilPriorityQueue
+		return // nil, false
 	}
 	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
 	}
-	pErr := gorecover.Recover(func() {
-		if pq.h.Len() <= 0 { // Do NOT call pq.Len(), which will dead lock!
-			x = nil
-			err = ErrEmptyPriorityQueue
-			return
-		}
-		var ok bool
-		x, ok = heap.Pop(pq.h).(gocontainer.Comparable)
-		if !ok {
-			x = nil
-			err = gocontainer.ErrWrongType
-		}
-		err = nil
-	})
-	if pErr != nil {
-		err = pErr
+	if pq.h.Len() <= 0 { // Do NOT call pq.Len(), which will dead lock!
+		return // nil, false
 	}
+	x = heap.Pop(pq.h).(gocontainer.Comparable)
+	ok = true
 	return
 }

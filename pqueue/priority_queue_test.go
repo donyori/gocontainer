@@ -3,44 +3,34 @@ package pqueue
 import (
 	"testing"
 
-	"github.com/donyori/gocontainer"
+	"github.com/donyori/gorecover"
 )
 
 func TestPriorityQueue(t *testing.T) {
-	pq, err := NewPriorityQueue(-2, false, false)
+	err := gorecover.Recover(func() {
+		NewPriorityQueue(-2, false, false)
+	})
 	if err != nil {
-		if err == ErrNegativeCapacity {
-			t.Log(err)
-		} else {
-			t.Fatal(err)
-		}
+		t.Log(err)
 	} else {
 		t.Fatal("No error but should have one.")
 	}
 	c := 5
-	pq, err = NewPriorityQueue(c, true, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	pq := NewPriorityQueue(c, true, true)
 	if c2 := pq.Cap(); c != c2 {
 		t.Errorf("cap(%d) != %d", c2, c)
 	}
 	inputs := []testElement1{3, 0, 9, -4, 3, -5, 8}
 	for i := range inputs {
-		err = pq.Enqueue(&inputs[i])
-		if err != nil {
-			t.Fatal(err)
-		}
+		pq.Enqueue(&inputs[i])
 	}
 	n1 := pq.Len()
 	var wrongInput testElement2 = 1.2
-	err = pq.Enqueue(&wrongInput)
+	err = gorecover.Recover(func() {
+		pq.Enqueue(&wrongInput)
+	})
 	if err != nil {
-		if err == gocontainer.ErrWrongType {
-			t.Log(err)
-		} else {
-			t.Fatal(err)
-		}
+		t.Log(err)
 	} else {
 		t.Fatal("No error but should have one.")
 	}
@@ -48,23 +38,18 @@ func TestPriorityQueue(t *testing.T) {
 	if n1 != n2 {
 		t.Fatal("Enqueue failed but pushed the item into the queue!")
 	}
-	x, err := pq.Top()
-	if err != nil {
-		t.Fatal(err)
-	}
+	x := pq.Top()
 	t.Logf("Top item: %+v", *(x.(*testElement1)))
-	x, err = pq.Dequeue()
-	if err != nil {
-		t.Fatal(err)
+	x, ok := pq.Dequeue()
+	if !ok {
+		t.Fatal("Dequeue failed!")
 	}
 	t.Logf("Dequeue item: %+v", *(x.(*testElement1)))
-	err = pq.Reset(-2)
+	err = gorecover.Recover(func() {
+		pq.Reset(-2)
+	})
 	if err != nil {
-		if err == ErrNegativeCapacity {
-			t.Log(err)
-		} else {
-			t.Fatal(err)
-		}
+		t.Log(err)
 	} else {
 		t.Fatal("No error but should have one.")
 	}
@@ -72,32 +57,17 @@ func TestPriorityQueue(t *testing.T) {
 		t.Fatal("Reset failed but clean the queue.")
 	}
 	c = 4
-	err = pq.Reset(c)
-	if err != nil {
-		t.Fatal(err)
-	}
+	pq.Reset(c)
 	if c2 := pq.Cap(); c != c2 {
 		t.Fatalf("cap(%d) != %d", c2, c)
 	}
-	err = pq.Clear()
-	if err != nil {
-		t.Fatal(err)
-	}
+	pq.Clear()
 	if c2 := pq.Cap(); c2 != 0 {
 		t.Fatalf("cap(%d) != 0", c2)
 	}
-	_, err = pq.Dequeue()
-	if err != nil {
-		if err == ErrEmptyPriorityQueue {
-			t.Log(err)
-		} else {
-			t.Fatal(err)
-		}
-	} else {
-		t.Fatal("No error but should have one.")
+	_, ok = pq.Dequeue()
+	if ok {
+		t.Fatal("No item in the queue but Dequeue succeeded!")
 	}
-	err = pq.Enqueue(x)
-	if err != nil {
-		t.Fatal(err)
-	}
+	pq.Enqueue(x)
 }

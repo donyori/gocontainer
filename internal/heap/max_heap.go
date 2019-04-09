@@ -27,14 +27,7 @@ func NewMaxHeap(capacity int, isIndexed bool) *MaxHeap {
 }
 
 func (h *MaxHeap) Less(i, j int) bool {
-	if h == nil {
-		panic(ErrNilHeap)
-	}
-	isLess, err := h.Get(i).Less(h.Get(j))
-	if err != nil {
-		panic(err)
-	}
-	return !isLess
+	return h.Get(j).Less(h.Get(i))
 }
 
 func (h *MaxHeap) Set(i int, x gocontainer.Comparable) {

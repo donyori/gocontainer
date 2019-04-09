@@ -2,12 +2,11 @@ package topkbuf
 
 import (
 	"container/heap"
-	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/donyori/gocontainer"
 	iheap "github.com/donyori/gocontainer/internal/heap"
-	"github.com/donyori/gorecover"
 )
 
 type TopKBuffer struct {
@@ -16,29 +15,19 @@ type TopKBuffer struct {
 	lock *sync.RWMutex
 }
 
-var (
-	ErrNilBuffer    error = errors.New("gocontainer: top-k buffer is nil")
-	ErrNonPositiveK error = errors.New("gocontainer: k is non-positive")
-)
-
-func NewTopKBuffer(k int, isSync bool) (tkb *TopKBuffer, err error) {
+func NewTopKBuffer(k int, isSync bool) *TopKBuffer {
 	if k <= 0 {
-		return nil, ErrNonPositiveK
+		panic(fmt.Errorf("gocontainer: k(%d) is non-positive", k))
 	}
-	tkb = new(TopKBuffer)
+	tkb := new(TopKBuffer)
 	if isSync {
 		tkb.lock = new(sync.RWMutex)
 	}
-	err = gorecover.Recover(func() {
-		// Not necessary to lock during init.
-		tkb.h = iheap.NewMinHeap(k, false)
-		tkb.k = k
-		heap.Init(tkb.h)
-	})
-	if err != nil {
-		return nil, err
-	}
-	return tkb, nil
+	// Not necessary to lock during init.
+	tkb.h = iheap.NewMinHeap(k, false)
+	tkb.k = k
+	heap.Init(tkb.h)
+	return tkb
 }
 
 func (tkb *TopKBuffer) Len() int {
@@ -74,97 +63,60 @@ func (tkb *TopKBuffer) K() int {
 	return tkb.k
 }
 
-func (tkb *TopKBuffer) ResetK(k int) error {
-	if tkb == nil {
-		return ErrNilBuffer
-	}
+func (tkb *TopKBuffer) ResetK(k int) {
 	if k <= 0 {
-		return ErrNonPositiveK
+		panic(fmt.Errorf("gocontainer: k(%d) is non-positive", k))
 	}
 	if tkb.lock != nil {
 		tkb.lock.Lock()
 		defer tkb.lock.Unlock()
 	}
-	return gorecover.Recover(func() {
-		// Pop excess items.
-		for i := tkb.k - k; i > 0; i-- {
-			heap.Pop(tkb.h)
-		}
-		// Set K.
-		tkb.k = k
-	})
+	// Pop excess items.
+	for i := tkb.k - k; i > 0; i-- {
+		heap.Pop(tkb.h)
+	}
+	// Set K.
+	tkb.k = k
 }
 
-func (tkb *TopKBuffer) Add(x gocontainer.Comparable) (err error) {
-	if tkb == nil {
-		return ErrNilBuffer
-	}
+func (tkb *TopKBuffer) Add(x gocontainer.Comparable) {
 	if tkb.lock != nil {
 		tkb.lock.Lock()
 		defer tkb.lock.Unlock()
 	}
-	pErr := gorecover.Recover(func() {
-		if tkb.h.Len() >= tkb.k {
-			var isLess bool
-			isLess, err = (*tkb.h).Top().Less(x)
-			if err != nil {
-				return
-			}
-			if isLess {
-				tkb.h.UpdateTop(x)
-			}
-		} else {
-			heap.Push(tkb.h, x)
+	if tkb.h.Len() >= tkb.k {
+		var isLess bool
+		isLess = (*tkb.h).Top().Less(x)
+		if isLess {
+			tkb.h.UpdateTop(x)
 		}
-	})
-	if pErr != nil {
-		err = pErr
+	} else {
+		heap.Push(tkb.h, x)
 	}
-	return
 }
 
-func (tkb *TopKBuffer) Flush() (xs []gocontainer.Comparable, err error) {
-	if tkb == nil {
-		return nil, ErrNilBuffer
-	}
+func (tkb *TopKBuffer) Flush() []gocontainer.Comparable {
 	if tkb.lock != nil {
 		tkb.lock.Lock()
 		defer tkb.lock.Unlock()
 	}
-	pErr := gorecover.Recover(func() {
-		n := tkb.h.Len() // Do NOT call tkb.Len(), which will dead lock!
-		if n <= 0 {
-			xs = nil
-			err = nil
-			return
-		}
-		xs = make([]gocontainer.Comparable, n)
-		var ok bool
-		for i := n - 1; i >= 0; i-- {
-			xs[i], ok = heap.Pop(tkb.h).(gocontainer.Comparable)
-			if !ok {
-				xs = nil
-				err = gocontainer.ErrWrongType
-				return
-			}
-		}
-	})
-	if pErr != nil {
-		err = pErr
+	n := tkb.h.Len() // Do NOT call tkb.Len(), which will dead lock!
+	if n <= 0 {
+		return nil
 	}
-	return
+	xs := make([]gocontainer.Comparable, n)
+	// Output in reverse order, in order to let the biggest item at 0 position.
+	for i := n - 1; i >= 0; i-- {
+		xs[i] = heap.Pop(tkb.h).(gocontainer.Comparable)
+	}
+	return xs
 }
 
-func (tkb *TopKBuffer) Clear() error {
-	if tkb == nil {
-		return ErrNilBuffer
-	}
+func (tkb *TopKBuffer) Clear() {
 	if tkb.lock != nil {
 		tkb.lock.Lock()
 		defer tkb.lock.Unlock()
 	}
-	return gorecover.Recover(func() {
-		tkb.h.Reset(tkb.k)
-		heap.Init(tkb.h)
-	})
+	tkb.h.Reset(tkb.k)
+	heap.Init(tkb.h)
 }

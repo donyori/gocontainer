@@ -3,34 +3,26 @@ package topkbuf
 import (
 	"testing"
 
-	"github.com/donyori/gocontainer"
+	"github.com/donyori/gorecover"
 )
 
 type testElement1 int
 type testElement2 float32
 
 func TestTopKBuffer(t *testing.T) {
-	tkb, err := NewTopKBuffer(-2, false)
+	err := gorecover.Recover(func() {
+		NewTopKBuffer(-2, false)
+	})
 	if err != nil {
-		if err == ErrNonPositiveK {
-			t.Log(err)
-		} else {
-			t.Fatal(err)
-		}
+		t.Log(err)
 	} else {
 		t.Fatal("No error but should have one.")
 	}
 	k := 5
-	tkb, err = NewTopKBuffer(k, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	tkb := NewTopKBuffer(k, true)
 	inputs := []testElement1{3, 0, 9, -4, 3, -5, 8}
 	for i := range inputs {
-		err = tkb.Add(&inputs[i])
-		if err != nil {
-			t.Fatal(err)
-		}
+		tkb.Add(&inputs[i])
 		l := tkb.Len()
 		k := tkb.K()
 		shouldLen := i + 1
@@ -44,13 +36,11 @@ func TestTopKBuffer(t *testing.T) {
 		}
 	}
 	var wrongInput testElement2 = 1.2
-	err = tkb.Add(&wrongInput)
+	err = gorecover.Recover(func() {
+		tkb.Add(&wrongInput)
+	})
 	if err != nil {
-		if err == gocontainer.ErrWrongType {
-			t.Log(err)
-		} else {
-			t.Fatal(err)
-		}
+		t.Log(err)
 	} else {
 		t.Fatal("No error but should have one.")
 	}
@@ -58,60 +48,28 @@ func TestTopKBuffer(t *testing.T) {
 	if c != k {
 		t.Errorf("cap(%d) != k(%d)", c, k)
 	}
-	err = tkb.ResetK(tkb.K() - 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	outputs, err := tkb.Flush()
-	if err != nil {
-		t.Fatal(err)
-	}
+	tkb.ResetK(tkb.K() - 1)
+	outputs := tkb.Flush()
 	for i, x := range outputs {
 		v := x.(*testElement1)
 		t.Logf("%d: %v", i, *v)
 	}
 	for i := range inputs {
-		err = tkb.Add(&inputs[i])
-		if err != nil {
-			t.Fatal(err)
-		}
+		tkb.Add(&inputs[i])
 	}
 	tkb.Clear()
 	if tkb.Len() != 0 {
 		t.Fatal("Not empty after Clear().")
 	}
-	err = tkb.Add(&inputs[0])
-	if err != nil {
-		t.Fatal(err)
-	}
+	tkb.Add(&inputs[0])
 }
 
-func (te *testElement1) Less(another gocontainer.Comparable) (
-	res bool, err error) {
-	a, ok := another.(*testElement1)
-	if !ok {
-		return false, gocontainer.ErrWrongType
-	}
-	if te == nil {
-		return a != nil, nil
-	} else if a == nil {
-		return false, nil
-	} else {
-		return *te < *a, nil
-	}
+func (te *testElement1) Less(another interface{}) bool {
+	a := another.(*testElement1)
+	return a != nil && (te == nil || *te < *a)
 }
 
-func (te *testElement2) Less(another gocontainer.Comparable) (
-	res bool, err error) {
-	a, ok := another.(*testElement2)
-	if !ok {
-		return false, gocontainer.ErrWrongType
-	}
-	if te == nil {
-		return a != nil, nil
-	} else if a == nil {
-		return false, nil
-	} else {
-		return *te < *a, nil
-	}
+func (te *testElement2) Less(another interface{}) bool {
+	a := another.(*testElement2)
+	return a != nil && (te == nil || *te < *a)
 }

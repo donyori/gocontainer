@@ -41,7 +41,6 @@ func TestMaxHeap(t *testing.T) {
 	} else {
 		inputMax = input2ndMax
 	}
-	input2ndMax = math.MinInt32
 	t.Logf("After update max - heap underlying: %v", h.baseHeap)
 	if max := h.Top(); max != inputMax {
 		t.Errorf("Max item (%d) != %d", max, inputMax)
@@ -50,10 +49,7 @@ func TestMaxHeap(t *testing.T) {
 	var last testElement = math.MaxInt32
 	for h.Len() > 0 {
 		x := stdheap.Pop(h).(testElement)
-		isLess, err := last.Less(x)
-		if err != nil {
-			t.Fatal(err)
-		}
+		isLess := last.Less(x)
 		if isLess {
 			t.Errorf("Pop a value bigger than last one: current = %d, last = %d", x, last)
 		} else {

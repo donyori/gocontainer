@@ -41,7 +41,6 @@ func TestMinHeap(t *testing.T) {
 	} else {
 		inputMin = input2ndMin
 	}
-	input2ndMin = math.MaxInt32
 	t.Logf("After update max - heap underlying: %v", h.baseHeap)
 	if min := h.Top(); min != inputMin {
 		t.Errorf("Max item (%d) != %d", min, inputMin)
@@ -50,10 +49,7 @@ func TestMinHeap(t *testing.T) {
 	var last testElement = math.MinInt32
 	for h.Len() > 0 {
 		x := stdheap.Pop(h).(testElement)
-		isLess, err := x.Less(last)
-		if err != nil {
-			t.Fatal(err)
-		}
+		isLess := x.Less(last)
 		if isLess {
 			t.Errorf("Pop a value smaller than last one: current = %d, last = %d", x, last)
 		} else {

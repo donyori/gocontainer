@@ -2,10 +2,10 @@ package pqueue
 
 import (
 	"container/heap"
+	"fmt"
 	"sync"
 
 	iheap "github.com/donyori/gocontainer/internal/heap"
-	"github.com/donyori/gorecover"
 )
 
 // Base type of PriorityQueue and PriorityQueueEx.
@@ -36,33 +36,26 @@ func (pq *basePriorityQueue) Cap() int {
 	return pq.h.Cap()
 }
 
-func (pq *basePriorityQueue) Reset(capacity int) error {
-	if pq == nil {
-		return ErrNilPriorityQueue
-	}
+func (pq *basePriorityQueue) Reset(capacity int) {
 	if capacity < 0 {
-		return ErrNegativeCapacity
+		panic(fmt.Errorf("gocontainer: capacity(%d) is negative", capacity))
 	}
 	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
 	}
-	return gorecover.Recover(func() {
-		pq.h.Reset(capacity)
-		heap.Init(pq.h)
-	})
+	pq.h.Reset(capacity)
+	heap.Init(pq.h)
 }
 
-func (pq *basePriorityQueue) Clear() error {
+func (pq *basePriorityQueue) Clear() {
 	if pq == nil {
-		return ErrNilPriorityQueue
+		return
 	}
 	if pq.lock != nil {
 		pq.lock.Lock()
 		defer pq.lock.Unlock()
 	}
-	return gorecover.Recover(func() {
-		pq.h.Clear()
-		heap.Init(pq.h)
-	})
+	pq.h.Clear()
+	heap.Init(pq.h)
 }

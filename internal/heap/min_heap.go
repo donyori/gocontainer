@@ -27,14 +27,7 @@ func NewMinHeap(capacity int, isIndexed bool) *MinHeap {
 }
 
 func (h *MinHeap) Less(i, j int) bool {
-	if h == nil {
-		panic(ErrNilHeap)
-	}
-	isLess, err := h.Get(i).Less(h.Get(j))
-	if err != nil {
-		panic(err)
-	}
-	return isLess
+	return h.Get(i).Less(h.Get(j))
 }
 
 func (h *MinHeap) Set(i int, x gocontainer.Comparable) {
