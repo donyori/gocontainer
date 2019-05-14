@@ -87,6 +87,17 @@ func (h *baseHeap) Top() gocontainer.Comparable {
 	return h.Get(0)
 }
 
+func (h *baseHeap) Scan(f func(x gocontainer.Comparable) (doesStop bool)) {
+	if h == nil || f == nil {
+		return
+	}
+	for _, x := range h.a {
+		if f(x) {
+			return
+		}
+	}
+}
+
 func (h *baseHeap) Clear() {
 	if h == nil {
 		return

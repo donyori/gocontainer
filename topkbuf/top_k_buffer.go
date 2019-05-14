@@ -85,9 +85,7 @@ func (tkb *TopKBuffer) Add(x gocontainer.Comparable) {
 		defer tkb.lock.Unlock()
 	}
 	if tkb.h.Len() >= tkb.k {
-		var isLess bool
-		isLess = (*tkb.h).Top().Less(x)
-		if isLess {
+		if (*tkb.h).Top().Less(x) {
 			tkb.h.UpdateTop(x)
 		}
 	} else {
@@ -110,6 +108,17 @@ func (tkb *TopKBuffer) Flush() []gocontainer.Comparable {
 		xs[i] = heap.Pop(tkb.h).(gocontainer.Comparable)
 	}
 	return xs
+}
+
+func (tkb *TopKBuffer) Scan(f func(x gocontainer.Comparable) (doesStop bool)) {
+	if tkb == nil || f == nil {
+		return
+	}
+	if tkb.lock != nil {
+		tkb.lock.RLock()
+		defer tkb.lock.RUnlock()
+	}
+	tkb.h.Scan(f)
 }
 
 func (tkb *TopKBuffer) Clear() {

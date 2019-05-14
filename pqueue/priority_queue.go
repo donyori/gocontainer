@@ -99,3 +99,15 @@ func (pq *PriorityQueue) Dequeue() (x gocontainer.Comparable, ok bool) {
 	ok = true
 	return
 }
+
+func (pq *PriorityQueue) Scan(
+	f func(x gocontainer.Comparable) (doesStop bool)) {
+	if pq == nil || f == nil {
+		return
+	}
+	if pq.lock != nil {
+		pq.lock.RLock()
+		defer pq.lock.RUnlock()
+	}
+	pq.h.Scan(f)
+}

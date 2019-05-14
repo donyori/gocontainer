@@ -135,3 +135,17 @@ func (pq *PriorityQueueEx) Remove(ici *gocontainer.IndexedComparableItem) (
 	heap.Remove(pq.h, idx)
 	return true
 }
+
+func (pq *PriorityQueueEx) Scan(
+	f func(ici *gocontainer.IndexedComparableItem) (doesStop bool)) {
+	if pq == nil || f == nil {
+		return
+	}
+	if pq.lock != nil {
+		pq.lock.RLock()
+		defer pq.lock.RUnlock()
+	}
+	pq.h.Scan(func(x gocontainer.Comparable) bool {
+		return f(x.(*gocontainer.IndexedComparableItem))
+	})
+}

@@ -13,6 +13,7 @@ type Heap interface {
 	Set(i int, x gocontainer.Comparable)
 	Top() gocontainer.Comparable
 	UpdateTop(x gocontainer.Comparable)
+	Scan(f func(x gocontainer.Comparable) (doesStop bool))
 	Clear()
 	Reset(capacity int)
 }
